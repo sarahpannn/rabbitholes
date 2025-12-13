@@ -1,0 +1,29 @@
+project:
+  type: website
+
+website:
+  title: "Sarah Pan's Blog"
+  description: "Personal and technical blog covering AI, machine learning, and research"
+  navbar:
+    background: primary
+    search: true
+    right:
+      - about.qmd
+      - icon: github
+        href: https://github.com/
+      - icon: twitter
+        href: https://twitter.com
+  sidebar:
+    style: "docked"
+    search: true
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+page-layout: full
+
+
+

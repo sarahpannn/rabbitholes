@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Sarah Pan">
+<meta name="author" content="Sarah Dufays">
+<meta name="dcterms.date" content="2024-12-13">
+<meta name="description" content="Final Project for 6.7960, Massachusetts Institute of Technology">
+
+<title>Sarah Pan’s Blog - Titan-LLaMA: Neural Memory Adapters for Continual Learning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-sidebar docked nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Sarah Pan’s Blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com"> <i class="bi bi-twitter" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Titan-LLaMA: Neural Memory Adapters for Continual Learning</li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Titan-LLaMA: Neural Memory Adapters for Continual Learning</h1>
+                  <div>
+        <div class="description">
+          Final Project for 6.7960, Massachusetts Institute of Technology
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">AI</div>
+                <div class="quarto-category">LLM</div>
+                <div class="quarto-category">Memory</div>
+                <div class="quarto-category">Research</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta column-body">
+
+      <div>
+      <div class="quarto-title-meta-heading">Authors</div>
+      <div class="quarto-title-meta-contents">
+               <p>Sarah Pan </p>
+               <p>Sarah Dufays </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">December 13, 2024</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#motivation" id="toc-motivation" class="nav-link active" data-scroll-target="#motivation">Motivation</a></li>
+  <li><a href="#background" id="toc-background" class="nav-link" data-scroll-target="#background">Background</a>
+  <ul class="collapse">
+  <li><a href="#titans-deep-neural-memory-as-state" id="toc-titans-deep-neural-memory-as-state" class="nav-link" data-scroll-target="#titans-deep-neural-memory-as-state">Titans: Deep Neural Memory as State</a></li>
+  </ul></li>
+  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
+  <ul class="collapse">
+  <li><a href="#attention-distillation-loss" id="toc-attention-distillation-loss" class="nav-link" data-scroll-target="#attention-distillation-loss">Attention Distillation Loss</a></li>
+  </ul></li>
+  <li><a href="#experiments" id="toc-experiments" class="nav-link" data-scroll-target="#experiments">Experiments</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a>
+  <ul class="collapse">
+  <li><a href="#experimental-setup" id="toc-experimental-setup" class="nav-link" data-scroll-target="#experimental-setup">Experimental Setup</a></li>
+  <li><a href="#experiment-1-results" id="toc-experiment-1-results" class="nav-link" data-scroll-target="#experiment-1-results">Experiment 1 Results</a></li>
+  <li><a href="#experiment-2-results" id="toc-experiment-2-results" class="nav-link" data-scroll-target="#experiment-2-results">Experiment 2 Results</a></li>
+  </ul></li>
+  <li><a href="#limitations-and-future-work" id="toc-limitations-and-future-work" class="nav-link" data-scroll-target="#limitations-and-future-work">Limitations and Future Work</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#bibliography" id="toc-bibliography" class="nav-link" data-scroll-target="#bibliography">Bibliography</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block column-body" id="quarto-document-content">
+
+
+
+
+
+<section id="motivation" class="level2">
+<h2 class="anchored" data-anchor-id="motivation">Motivation</h2>
+<p>In NLP, we already have a bunch of very strong, off-the-shelf LLMs, but their “memory” cost grows quadratically with sequence length. Most open-source fixes are linear-time hacks—sliding windows, RAG, caching tricks, etc—rather than a true learned state. As we discuss in the background, these approaches keep the model stateless and outsource memory to context or retrieval.</p>
+<p>Titans stood out to us because it is a very unique approach that does the opposite: the state is a learned architecture, not a transient context vector that disappears when the window moves on. We wanted to extend that idea and build modular Titan adapters that augment a pre-trained LLM whose long-range memory we’ve deliberately incapacitated.</p>
+<p>No one has done this before: combining Titans-style neural memory with a frozen backbone as a drop-in “memory cartridge”. The result is an architecture that (i) generates tokens much faster as generation length grows and (ii) can be fine-tuned by swapping in task-specific memory adapters for downstream domains.</p>
+<p>Architecturally, this buys us a different scaling regime. Full-attention LLaMA pays a quadratic price in sequence length, so tokens/sec inevitably drop as generations get longer. Once we segment attention, each token only attends within a fixed-size window, so generation cost is tied to segment size rather than total sequence length. With a well-optimized NMM, a segmented-with-memory model should overtake full attention beyond a few segments because the longer you generate, the larger the relative speedup.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/throughput_vs_generation.png" class="img-fluid figure-img"></p>
+<figcaption>Token throughput vs.&nbsp;generation length. Full-attention LLaMA slows down as sequences grow, while segmented attention keeps throughput roughly flat; our segmented+NMM model should eventually beat full attention once the memory kernels are optimized.</figcaption>
+</figure>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Note that in our prototype the throughput curve still lags slightly behind full attention because the NMM kernels are under-optimized and add extra intermediate computation, but that is a systems issue, not a limitation of the design.</p>
+</div>
+</div>
+</section>
+<section id="background" class="level2">
+<h2 class="anchored" data-anchor-id="background">Background</h2>
+<p>Prior work on adapting language models falls into two categories.</p>
+<p><strong>Memory and state.</strong> RNNs and LSTMs compress history into a fixed-size hidden vector but forget distant information. SSMs <span class="citation" data-cites="gu2021efficiently">[@gu2021efficiently]</span> revisit this idea by improving stability and efficiency with linear dynamics. Transformers on the other hand store everything explicitly via attention, relying on a KV cache that grows with sequence length. This means every new token attends over all previous ones, which gives precise access to the past but with quadratic cost in the context length.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This illustrates a core tradeoff in ML: recurrent models compress history into a fixed-size state but struggle with very long contexts, while transformers store everything explicitly and become slow and memory-hungry.</p>
+</div>
+</div>
+<p><strong>Parameter-efficient adapters.</strong> Full fine-tuning is expensive and risks catastrophic forgetting. LoRA <span class="citation" data-cites="hu2021lora">[@hu2021lora]</span> instead adds trainable low-rank factors to frozen weight matrices, reducing trainable parameters by orders of magnitude while preserving expressivity. Cartridges <span class="citation" data-cites="hewitt2024cartridges">[@hewitt2024cartridges]</span> go further, treating the KV cache as an adapter: learned virtual KV vectors are prepended to the context so the frozen model behaves as if it had read a particular corpus. Both keep backbone weights untouched.</p>
+<section id="titans-deep-neural-memory-as-state" class="level3">
+<h3 class="anchored" data-anchor-id="titans-deep-neural-memory-as-state">Titans: Deep Neural Memory as State</h3>
+<p><strong>Titans: deep neural memory as state.</strong> Titans <span class="citation" data-cites="behrouz2024titans">[@behrouz2024titans]</span>, introduced by Behrouz et al.&nbsp;[Google Research] in 2024, combines transformer-level accuracy with RNN-like speeds by maintaining a deep neural memory alongside attention. Titans introduces three fundamental innovations:</p>
+<p><strong>1. True Test-Time Memory.</strong> Instead of just expanding context windows or adding retrieval mechanisms, Titans learns to memorize at test time. The neural long-term memory module learns what to remember while running, gets smarter with every interaction, and maintains context across extended use.</p>
+<p><strong>2. Surprise-Based Memory.</strong> Rather than treating every token in the context as equally important, Titans uses a learned “surprise” score to decide what is worth remembering and therefore what actually gets written into its neural memory. We can compare this to how in human psychology, we quickly forget routine events but remember unexpected, surprising, or highly emotional events.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Low surprise:</strong> If the model is reading the 6.7960 course page and its memory is expecting yet another “PSET released” announcement, the gradient (surprise) is low so it can safely skip memorizing this in permanent storage.</p>
+<p><strong>High surprise:</strong> If the same course page suddenly says “All remaining PSETs are cancelled; everyone gets an A! =)” the gradient will be very high, indicating that this is important and should be prioritized for permanent storage.</p>
+</div>
+</div>
+<p>The model uses this internal error signal (the gradient) as a mathematical equivalent of saying “Pay attention to this!” This allows selective memory updates with only the most important information.</p>
+<p>Titans considers both “momentary surprise” (current input) and “past surprise” (recent context flow) to make sure that relevant subsequent information is captured even if individual tokens aren’t surprising.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/surprise_formula.png" class="img-fluid figure-img"></p>
+<figcaption>Surprise update rule. Memory M<sub>t</sub> = M<sub>t-1</sub> + S<sub>t</sub>, where S<sub>t</sub> mixes momentum from past surprise with the current prediction-error gradient.</figcaption>
+</figure>
+</div>
+<p><strong>3. Adaptive Forgetting.</strong> To better manage the memory’s limited capacity, Titans adds an adaptive forgetting gate (similar to the gating mechanism in modern RNNs) that scales the previous memory before adding the new surprise update, so the model can softly decay stale information or, in the extreme, wipe the memory entirely.</p>
+<p><strong>Titans factor memory into three pieces:</strong></p>
+<ul>
+<li><strong>Short-term memory:</strong> localized attention windows over recent tokens</li>
+<li><strong>Long-term memory:</strong> a small MLP that maps keys to values, updated online via the surprise loss</li>
+<li><strong>Persistent memory:</strong> task-level parameters independent of the input sequence</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Note that Ali Behrouz (Titans author) mentions on the Cognitive Revolution podcast <span class="citation" data-cites="behrouz2025podcast">[@behrouz2025podcast]</span> that persistent memory is mostly there for a human-memory analogy and isn’t really needed in practice, so we ignore it in our implementation and just add the short and long-term memory pieces.</p>
+</div>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/titans_overview.png" class="img-fluid figure-img"></p>
+<figcaption>Titans MAC architecture.</figcaption>
+</figure>
+</div>
+<p><strong>Legend:</strong> - <strong>Top band:</strong> long-term contextual memory (Neural Memory) - <strong>Middle band:</strong> short-term sequence + attention (Core)<br>
+- <strong>Bottom band:</strong> persistent task-specific parameters (Persistent Memory)</p>
+<p>Neural memory stores a compressed summary of past tokens that is retrieved, updated, and injected back into attention over the current sequence.</p>
+<p>In summary, memory is not a vector or cache but a trainable module whose weights are the state—the model learns and adapts dynamically as new data arrives.</p>
+</section>
+</section>
+<section id="methods" class="level2">
+<h2 class="anchored" data-anchor-id="methods">Methods</h2>
+<p><strong>Our perspective:</strong> We combine these views by attaching Titan-style memory to a frozen LLaMA backbone and treating it as a cartridge-style adapter. The backbone stays fixed; only the Titan memory continues learning.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/nmm_bridge.png" class="img-fluid figure-img"></p>
+<figcaption>The NMM (green) injects cross-segment attention entries, allowing information retrieval across segment boundaries without full-sequence attention.</figcaption>
+</figure>
+</div>
+<p>The next step of the process is to augment the localized attention calculation with “long-term memory” that is retrieved from the NMM. The NMM will try to recall what happened at the previous local attention window.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/temporal_loop.png" class="img-fluid figure-img"></p>
+<figcaption>As chunks c1–c5 progress, the NMM is queried then updated based on prediction error, persisting information across the full sequence.</figcaption>
+</figure>
+</div>
+<p>It might be helpful to “flip” the time axis when thinking about the fast update process. If we imagine each localized attention segment to be its own element in a sequence, this process closely resembles that of an LSTM or RNN. However, instead of learning weights that modulate previous hidden cell states, the hidden state itself is parameterized as a deep, learned architecture.</p>
+<p>By storing the gradients for the surprisal-based loss, our neural memory module is essentially trained to remember all the prior attention outputs.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/full_architecture.png" class="img-fluid figure-img"></p>
+<figcaption>Purple: frozen LLaMA. Green: trainable NMM + fast gradients. Only the memory “cartridge” adapts. The backbone is completely frozen: only ~2% of parameters are trainable.</figcaption>
+</figure>
+</div>
+<p>Finally, we propagate the language modeling loss over the weights of the NMMs and actually perform weight updates. It’s important to note here that the rest of the weights in the pre-trained backbone are frozen and no updates are made to them. We can think of these “slow updates” as teaching the NMMs <em>how</em> to recall best.</p>
+<section id="attention-distillation-loss" class="level3">
+<h3 class="anchored" data-anchor-id="attention-distillation-loss">Attention Distillation Loss</h3>
+<p>In practice, we noticed that the pure language modeling objective was really easy for NMMs to master. And in fact, we do much better than our out-of-the-box LLM when evaluating next token prediction purely on a token accuracy / perplexity basis. However, when it came to the challenging language benchmarks that pre-trained LLMs excel at, solely using the language modeling loss was insufficient.</p>
+<p>In our setting, we want the NMM to first recover baseline capabilities of the backbone LLM. We supervise the outputs of the Titan-agumented layers with that from our pre-trained backbone. In effect, we implicitly distill the expressivity from our pre-trained “teacher attention” into our adapter’s recollection strategy only using a single additional forward pass at train-time.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Calculating Attention Distillation Loss
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-5" class="callout-5-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Compute normal titan-llama forward pass
+<ol type="a">
+<li>Collect hidden states, these are “student” latents</li>
+</ol></li>
+<li>Do a forward pass over the backbone, without segmented attn
+<ol type="a">
+<li>Collect hidden states, these are “teacher” latents</li>
+</ol></li>
+<li>Compute MSE over these latents, scale, and add to LM loss</li>
+</ol>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="experiments" class="level2">
+<h2 class="anchored" data-anchor-id="experiments">Experiments</h2>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Hypothesis:</strong> A Titans-style neural memory, used as an adapter on top of a frozen LLM backbone, can</p>
+<ol type="1">
+<li>recover backbone LLM capabilities<br>
+</li>
+<li>be fine-tuned to specialize in new domains</li>
+</ol>
+</div>
+</div>
+<p><strong>Experiment 1: Can Titan-LLaMA recover base LM abilities?</strong></p>
+<p>We test whether the NMM can compensate for the information lost when replacing full attention with cheap segmented attention.</p>
+<p><em>1a. Language Modeling:</em> Train the Titan-LLaMA adapter on 1B tokens from SlimPajama-627B and FineWeb-EDU. Report validation perplexity and token accuracy.</p>
+<p><em>1b. NLP Benchmarks:</em> Evaluate on Winogrande <span class="citation" data-cites="sakaguchi2019winogrande">[@sakaguchi2019winogrande]</span>, BoolQ <span class="citation" data-cites="clark2019boolq">[@clark2019boolq]</span>, CommonsenseQA <span class="citation" data-cites="talmor2018commonsenseqa">[@talmor2018commonsenseqa]</span>, DROP <span class="citation" data-cites="dua2019drop">[@dua2019drop]</span>, SQuAD <span class="citation" data-cites="rajpurkar2016squad">[@rajpurkar2016squad]</span>, and PubMedQA <span class="citation" data-cites="jin2019pubmedqa">[@jin2019pubmedqa]</span>. Compare against frozen LLaMA (full attention) and segmented-only (ablation).</p>
+<p><strong>Experiment 2: Domain Adaptation</strong></p>
+<p>Can we train domain-specific NMMs that specialize to new areas?</p>
+<ul>
+<li><strong>Biomed:</strong> PubMed corpus, PubMedQA <span class="citation" data-cites="jin2019pubmedqa">[@jin2019pubmedqa]</span></li>
+<li><strong>Legal:</strong> LexGLUE benchmark <span class="citation" data-cites="chalkidis2021lexglue">[@chalkidis2021lexglue]</span></li>
+<li><strong>Math:</strong> AQUA-RAT word problems <span class="citation" data-cites="ling2017aqua">[@ling2017aqua]</span></li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>We test both <em>recovery</em> (can NMM fix segmentation?) and <em>adaptation</em> (can NMM specialize?).</p>
+</div>
+</div>
+</section>
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">Results</h2>
+<section id="experimental-setup" class="level3">
+<h3 class="anchored" data-anchor-id="experimental-setup">Experimental Setup</h3>
+<p>We use <a href="https://huggingface.co/meta-llama/Llama-3.1-8B">Llama-3.1-8b</a> as our pre-trained LLM backbone. For the NMMs, we attach 2-layer MLPs, with hidden dimension 2048 onto layers 4, 8, 12, 16, and 20. We use an attention segment length half the size of the data sequence length, a neural memory segment length of 64, and a neural memory batch size of 64.</p>
+<p>For pre-training data, we use a 1b-token mixture of <a href="https://huggingface.co/datasets/cerebras/SlimPajama-627B">Slim Pajama</a> and <a href="https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu">FineWeb-EDU</a>. We fine-tune on the training sets of <a href="https://huggingface.co/datasets/qiaojin/PubMedQA">PubMedQA</a>, <a href="https://huggingface.co/datasets/casehold/casehold">CaseHOLD</a>, <a href="https://huggingface.co/datasets/deepmind/aqua_rat">AQUA-RAT</a>.</p>
+<p>We find that higher neural learning rates (on the order of 1e-3) are helpful to performance. Gradient updates are performed with a learning rate of 3e-4 with a linear warmup and cosine annealing. Further, we weigh the distillation loss at 0.6 relative to language modeling loss. Due to the scope of the project, we were unable to thoroughly vet our hyperparameter setup–further work will explore annealing distillation loss weight and more tuning.</p>
+</section>
+<section id="experiment-1-results" class="level3">
+<h3 class="anchored" data-anchor-id="experiment-1-results">Experiment 1 Results</h3>
+<p>We verified that imparing attention masks led to catastrophic results. Performance of Llama-Titan exceeded that of the frozen backbone on next-token prediction / language modeling.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Model</th>
+<th>Token Accuracy</th>
+<th>Perplexity</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Full-Attention LLaMA</td>
+<td>55.2%</td>
+<td>7.26</td>
+</tr>
+<tr class="even">
+<td>Segmented-only (no NMM)</td>
+<td>0%</td>
+<td>1,516,042</td>
+</tr>
+<tr class="odd">
+<td><strong>Titan-LLaMA (Segmented + NMM)</strong></td>
+<td><strong>100%</strong></td>
+<td><strong>~1.0</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The NMM not only recovers but actually exceeds baseline language modeling metrics—achieving 100% token accuracy vs.&nbsp;55.2% for the original model. This suggests the NMM learns an effective compression of the training distribution.</p>
+<p>This result validates the first part of our hypothesis—the NMM can recover capabilities lost to segmentation, at least for the language modeling objective. However, perfect scores (100% accuracy, ~1.0 perplexity) suggest possible overfitting to the training distribution rather than true generalization. This motivates our next experiment: do these gains transfer to downstream benchmarks?</p>
+<p>Building on the language modeling success, we add attention distillation (described in Methods) to transfer rich representations to downstream tasks, and we achieve the following results:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 25%">
+<col style="width: 23%">
+<col style="width: 35%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Benchmark</th>
+<th>Full-Attn LLaMA</th>
+<th>Segmented-only</th>
+<th>Titan-LLaMA (LM loss)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Winogrande</td>
+<td>60.5%</td>
+<td>48.4%</td>
+<td>52.3% (+3.9%)</td>
+</tr>
+<tr class="even">
+<td>BoolQ</td>
+<td>75.0%</td>
+<td>43%</td>
+<td>63% (+20%)</td>
+</tr>
+<tr class="odd">
+<td>CommonsenseQA</td>
+<td>75.0%</td>
+<td>13%</td>
+<td>18% (+5%)</td>
+</tr>
+<tr class="even">
+<td>DROP</td>
+<td>59.5%</td>
+<td>0%</td>
+<td>7.4% (+7.4%)</td>
+</tr>
+<tr class="odd">
+<td>SquadV2</td>
+<td>77%</td>
+<td>0%</td>
+<td>6.25% (+6.25%)</td>
+</tr>
+</tbody>
+</table>
+<p>We therefore conclude that LM loss alone teaches the NMM to predict tokens, but not to build the rich intermediate representations that full attention provides. Attention distillation forces the NMM’s hidden states to match the teacher model’s representations, which is necessary for successful downstream task performance.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Note that only Winogrande and BoolQ were properly hyperparameter-tuned; for the other tasks we only ran ~30 training steps, so their scores are likely under-optimized.</p>
+</div>
+</div>
+<p>These results partially validate our hypothesis. The NMM does recover some benchmark performance (e.g., BoolQ improves by 20 percentage points over segmented-only), but does not fully match the frozen backbone. This gap could come from several factors… limited hyperparameter tuning, insufficient training compute, suboptimal NMM architecture choices (e.g., 2-layer MLPs may be too shallow), or potentially fundamental capacity limitations of the approach. Disentangling these factors would require more extensive ablations. The consistent improvement from distillation does confirm that representation quality, not just next-token prediction, is critical for downstream tasks.</p>
+</section>
+<section id="experiment-2-results" class="level3">
+<h3 class="anchored" data-anchor-id="experiment-2-results">Experiment 2 Results</h3>
+<p><strong>Domain-specific fine-tuning.</strong> We fine-tuned Titan-LLaMA on 3 domain-specific tasks:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 15%">
+<col style="width: 23%">
+<col style="width: 22%">
+<col style="width: 38%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Benchmark</th>
+<th>Full-Attn LLaMA</th>
+<th>Segmented-only</th>
+<th>Titan-LLaMA (fine-tuned)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PubMedQA (Biomed)</td>
+<td>58%</td>
+<td>46%</td>
+<td>55%</td>
+</tr>
+<tr class="even">
+<td>CaseHOLD (Legal)</td>
+<td>33%</td>
+<td>19%</td>
+<td>23%</td>
+</tr>
+<tr class="odd">
+<td>AQUA-RAT (Math)</td>
+<td>28%</td>
+<td>22%</td>
+<td>24.8%</td>
+</tr>
+</tbody>
+</table>
+<p>These results validate the second part of our hypothesis—the NMM can be fine-tuned to specialize in new domains. The varying recovery rates (75% for PubMedQA vs.&nbsp;29% for CaseHOLD) suggest that some domains are easier to compress into learned memory than others.</p>
+<p>PubMedQA shows the strongest recovery, closing 75% of the gap between segmented-only and full attention (from 46% to 55%, vs.&nbsp;58% full attention). CaseHOLD and AQUA-RAT show more modest but still meaningful improvements.</p>
+</section>
+</section>
+<section id="limitations-and-future-work" class="level2">
+<h2 class="anchored" data-anchor-id="limitations-and-future-work">Limitations and Future Work</h2>
+<p><strong>1) Incomplete recovery.</strong> Even with distillation, we don’t fully recover full-attention performance on most benchmarks. The gap suggests that some information encoded in full attention is fundamentally difficult to compress into a learned memory module. Future work could explore larger NMM architectures or different distillation strategies.</p>
+<p><strong>2) Throughput overhead.</strong> Our current NMM implementation introduces computational overhead that negates the theoretical efficiency gains of segmented attention. As shown in Figure 1, the segmented+NMM model currently underperforms full attention in throughput. Optimized GPU and better memory management could address this.</p>
+<p><strong>3) Limited hyperparameter tuning.</strong> Due to compute and time constraints, only Winogrande and BoolQ were thoroughly tuned. Other benchmarks (CommonsenseQA, DROP, SQuAD) ran for ~30 training steps, so their scores are likely under-optimized. More extensive sweeps could improve results.</p>
+<p><strong>4) Scale.</strong> All experiments use LLaMA-3.1-8B. We would like to test whether our findings generalize to larger models where the capacity gap between NMM and full attention may be more or less pronounced.</p>
+<p><strong>5) Future directions.</strong> Promising next steps include: (1) training NMMs from distillation alone without LM loss, (2) exploring different NMM architectures beyond 2-layer MLPs, (3) investigating whether NMMs can enable genuine continual learning without catastrophic forgetting, and (4) scaling to longer sequences where the efficiency benefits of segmentation become more pronounced.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" role="list">
+
+</div>
+</section>
+<section id="bibliography" class="level2 hidden">
+<h2 class="anchored" data-anchor-id="bibliography">Bibliography</h2>
+<p><span class="citation" data-cites="hu2021lora">@hu2021lora</span> Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., &amp; Chen, W. (2021). LoRA: Low-Rank Adaptation of Large Language Models. arXiv preprint arXiv:2106.09685.</p>
+<p><span class="citation" data-cites="hewitt2024cartridges">@hewitt2024cartridges</span> Hewitt, J., et al.&nbsp;(2024). Cartridges: Compact Representations for LLM Reasoning. arXiv preprint arXiv:2506.06266.</p>
+<p><span class="citation" data-cites="gu2021efficiently">@gu2021efficiently</span> Gu, A., Goel, K., &amp; Ré, C. (2021). Efficiently Modeling Long Sequences with Structured State Spaces. arXiv preprint arXiv:2111.00396.</p>
+<p><span class="citation" data-cites="behrouz2024titans">@behrouz2024titans</span> Behrouz, A., et al.&nbsp;(2024). Titans: Learning to Memorize at Test Time. Google Research. arXiv preprint arXiv:2501.00663.</p>
+<p><span class="citation" data-cites="sakaguchi2019winogrande">@sakaguchi2019winogrande</span> Sakaguchi, K., et al.&nbsp;(2019). WinoGrande: An Adversarial Winograd Schema Challenge at Scale. arXiv preprint arXiv:1907.10641.</p>
+<p><span class="citation" data-cites="clark2019boolq">@clark2019boolq</span> Clark, C., et al.&nbsp;(2019). BoolQ: Exploring the Surprising Difficulty of Natural Yes/No Questions. arXiv preprint arXiv:1905.10044.</p>
+<p><span class="citation" data-cites="talmor2018commonsenseqa">@talmor2018commonsenseqa</span> Talmor, A., et al.&nbsp;(2018). CommonsenseQA: A Question Answering Challenge Targeting Commonsense Knowledge. arXiv preprint arXiv:1811.00937.</p>
+<p><span class="citation" data-cites="dua2019drop">@dua2019drop</span> Dua, D., et al.&nbsp;(2019). DROP: A Reading Comprehension Benchmark Requiring Discrete Reasoning. arXiv preprint arXiv:1903.00161.</p>
+<p><span class="citation" data-cites="rajpurkar2016squad">@rajpurkar2016squad</span> Rajpurkar, P., et al.&nbsp;(2016). SQuAD: 100,000+ Questions for Machine Comprehension of Text. arXiv preprint arXiv:1606.05250.</p>
+<p><span class="citation" data-cites="jin2019pubmedqa">@jin2019pubmedqa</span> Jin, Q., et al.&nbsp;(2019). PubMedQA: A Dataset for Biomedical Research Question Answering. arXiv preprint arXiv:1909.06146.</p>
+<p><span class="citation" data-cites="chalkidis2021lexglue">@chalkidis2021lexglue</span> Chalkidis, I., et al.&nbsp;(2021). LexGLUE: A Benchmark Dataset for Legal Language Understanding. arXiv preprint arXiv:2110.00976.</p>
+<p><span class="citation" data-cites="ling2017aqua">@ling2017aqua</span> Ling, W., et al.&nbsp;(2017). AQUA-RAT: Algebra Question Answering Dataset. GitHub repository.</p>
+<p><span class="citation" data-cites="behrouz2025podcast">@behrouz2025podcast</span> Behrouz, A. (2025). Cognitive Revolution podcast. YouTube.</p>
+</section>
+
+
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
