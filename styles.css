@@ -1,1 +1,71 @@
-/* css styles */
+/*-- scss:defaults --*/
+
+/*-- scss:rules --*/
+
+/* Clean, minimal styles inspired by Karpathy's blog */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+}
+
+/* Navbar */
+.navbar-brand {
+  font-weight: 600;
+  font-size: 1.4rem;
+}
+
+/* Content */
+.quarto-title-banner {
+  background: white;
+  border-bottom: 1px solid #dee2e6;
+  padding: 2rem 0 1rem 0;
+}
+
+.title {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #6c757d;
+  font-weight: 400;
+  margin-bottom: 0;
+}
+
+/* Blog post listings */
+.quarto-listing-default .listing-item {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 1.5rem 0;
+}
+
+.quarto-listing-default .listing-item:last-child {
+  border-bottom: none;
+}
+
+.listing-item h3.listing-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.listing-item .listing-description {
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.listing-item .listing-date {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+/* Clean up headers in posts */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }

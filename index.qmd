@@ -1,18 +1,18 @@
 ---
-title: "Sarah Pan's Blog"
-subtitle: "Personal and Technical Blog"
+title: "Rabbitholes"
+subtitle: "Sarah Pan spends too much time doing random things"
 listing:
   contents: posts
   sort: "date desc"
   type: default
-  categories: true
+  categories: false
   sort-ui: false
   filter-ui: false
 page-layout: full
 title-block-banner: true
 ---
 
-Welcome to my personal and technical blog! Here I share insights on AI, machine learning, research projects, and other topics that interest me.
+Welcome to my technical blog! Here I share insights on AI, machine learning, research projects, and other topics that interest me.
 
 ## Recent Posts
 

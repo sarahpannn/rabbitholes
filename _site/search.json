@@ -4,21 +4,7 @@
     "href": "about.html",
     "title": "About",
     "section": "",
-    "text": "I’m Sarah Pan, a researcher and engineer interested in AI, machine learning, and computational methods. This blog is where I share my thoughts on research projects, technical insights, and other topics that catch my interest."
-  },
-  {
-    "objectID": "about.html#about-me",
-    "href": "about.html#about-me",
-    "title": "About",
-    "section": "",
-    "text": "I’m Sarah Pan, a researcher and engineer interested in AI, machine learning, and computational methods. This blog is where I share my thoughts on research projects, technical insights, and other topics that catch my interest."
-  },
-  {
-    "objectID": "about.html#about-this-blog",
-    "href": "about.html#about-this-blog",
-    "title": "About",
-    "section": "About This Blog",
-    "text": "About This Blog\nThis blog covers a range of topics including:\n\nAI and machine learning research\nTechnical project write-ups\nCourse projects and academic work\nProgramming insights and tutorials\n\nFeel free to reach out via the social links above if you’d like to connect!"
+    "text": "I’m Sarah Pan. I work on AI/ML stuff and occasionally write about things I find interesting.\nThis blog is called “rabbitholes” because I tend to get sucked into random technical topics and spend way too much time exploring them.\nFeel free to reach out on Twitter or GitHub."
   },
   {
     "objectID": "posts/titan-llama/index.html",
@@ -86,14 +72,14 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "Sarah Pan’s Blog",
+    "title": "Rabbitholes",
     "section": "",
-    "text": "Welcome to my personal and technical blog! Here I share insights on AI, machine learning, research projects, and other topics that interest me."
+    "text": "Welcome to my technical blog! Here I share insights on AI, machine learning, research projects, and other topics that interest me."
   },
   {
     "objectID": "index.html#recent-posts",
     "href": "index.html#recent-posts",
-    "title": "Sarah Pan’s Blog",
+    "title": "Rabbitholes",
     "section": "Recent Posts",
     "text": "Recent Posts"
   }

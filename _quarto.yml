@@ -2,26 +2,25 @@ project:
   type: website
 
 website:
-  title: "Sarah Pan's Blog"
-  description: "Personal and technical blog covering AI, machine learning, and research"
+  title: "Rabbitholes"
+  description: "Sarah Pan spends too much time doing random things"
   navbar:
-    background: primary
-    search: true
+    background: light
+    search: false
     right:
       - about.qmd
       - icon: github
         href: https://github.com/
       - icon: twitter
         href: https://twitter.com
-  sidebar:
-    style: "docked"
-    search: true
 
 format:
   html:
-    theme: cosmo
-    css: styles.css
+    theme: 
+      light: [cosmo, styles.css]
     toc: true
+    code-copy: true
+    anchor-sections: true
 
 page-layout: full
 
