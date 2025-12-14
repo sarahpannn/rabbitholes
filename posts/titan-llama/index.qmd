@@ -3,15 +3,15 @@ title: "Titan-LLaMA: Neural Memory Adapters for Continual Learning"
 author: 
   - "Sarah Pan"
   - "Sarah Dufays"
-date: "2024-12-13"
-description: "Final Project for 6.7960, Massachusetts Institute of Technology"
+date: "2025-12-13"
+# description: "Final Project for 6.7960, Massachusetts Institute of Technology"
 image: "images/titans_overview.png"
 bibliography: references.bib
 draft: false
 ---
 
 ::: {.callout-warning}
-This work was submitted as our final project for Deep Learning at MIT (6.7960).
+This work was submitted as our final project for Deep Learning at MIT (6.7960). Many of the results are still preliminary as work is ongoing.
 :::
 
 ## Motivation
@@ -59,9 +59,27 @@ The surprise update rule is shown in @eq-surprise-update. Here, $\alpha_t$ serve
 
 On the flip side, we still care about the language modeling objective and want to update the weights that parameterize $\mathcal{M}_t$ to optimize retrieval of the right information. These are the "slow updates" that operate on the timescale of our optimizer.
 
-**3. This Can be Made Practical.** A naïve implementation of these per-token weight updates is inherently sequential. But with a few tricks, you can actually vectorize much of the computation.
+**3. This Can be Made Practical.** A naive implementation of these per-token weight updates is inherently sequential, but with a few tricks, you can actually vectorize much of the computation. If chunks within a sequence have length `b` and hidden size `d`, the rest of the computation is described as such:
 
 
+```python
+# X: [b, d]   (tokens in a chunk)
+# W0: [d, d]
+# A: [b, b]   (A = Θ_b B_b)
+
+# residuals r_i = (W0 x_i - x_i)
+R = X @ W0.T - X  # [b, d]
+
+# per-token outer products g_i = r_i x_i^T   -> [b, d, d]
+G = torch.einsum('bi,bj->bij', R, X)  # [b, d, d]
+
+# weighted prefix sums for every t in {1..b}:  U_t = Σ_i A[t,i] * G_i  -> [b, d, d]
+U = torch.einsum('ti,ijk->tjk', A, G) # [b, d, d]
+
+# if you only need the "end of chunk" update (t=b), grab:
+dW_end = U[-1] # [d, d]
+
+```
 
 
 ## Methods
@@ -88,10 +106,10 @@ In practice, we noticed that the pure language modeling objective was really eas
 
 In our setting, we want the NMM to first recover baseline capabilities of the backbone LLM. We supervise the outputs of the Titan-agumented layers with that from our pre-trained backbone. In effect, we implicitly distill the expressivity from our pre-trained "teacher attention" into our adapter's recollection strategy only using a single additional forward pass at train-time.
 
-::: {.callout-tip collapse="true"}
+::: {.callout-tip}
 ## Calculating Attention Distillation Loss
 
-1. Compute normal titan-llama forward pass
+1. Compute normal forward pass
    a. Collect hidden states, these are "student" latents
 2. Do a forward pass over the backbone, without segmented attn
    a. Collect hidden states, these are "teacher" latents
@@ -123,10 +141,6 @@ Can we train domain-specific NMMs that specialize to new areas?
 - **Legal:** LexGLUE benchmark [@chalkidis2021lexglue]
 - **Math:** AQUA-RAT word problems [@ling2017aqua]
 
-::: {.callout-note}
-We test both *recovery* (can NMM fix segmentation?) and *adaptation* (can NMM specialize?).
-:::
-
 ## Results
 
 ### Experimental Setup
@@ -155,8 +169,8 @@ Building on the language modeling success, we add attention distillation (descri
 
 | Benchmark | Full-Attn LLaMA | Segmented-only | Titan-LLaMA (LM loss) |
 |-----------|-----------------|----------------|------------------------|
-| Winogrande | 60.5% | 48.4% | 52.3% (+3.9%) |
-| BoolQ | 75.0% | 43% | 63% (+20%) |
+| **Winogrande** | 60.5% | 48.4% | 52.3% (+3.9%) |
+| **BoolQ** | 75.0% | 43% | 63% (+20%) |
 | CommonsenseQA | 75.0% | 13% | 18% (+5%) |
 | DROP | 59.5% | 0% | 7.4% (+7.4%) |
 | SquadV2 | 77% | 0% | 6.25% (+6.25%) |
@@ -164,7 +178,7 @@ Building on the language modeling success, we add attention distillation (descri
 We therefore conclude that LM loss alone teaches the NMM to predict tokens, but not to build the rich intermediate representations that full attention provides. Attention distillation forces the NMM's hidden states to match the teacher model's representations, which is necessary for successful downstream task performance.
 
 ::: {.callout-note}
-Note that only Winogrande and BoolQ were properly hyperparameter-tuned; for the other tasks we only ran ~30 training steps, so their scores are likely under-optimized.
+Note that **only Winogrande and BoolQ were properly hyperparameter-tuned**; for the other tasks we only ran ~30 training steps^[because we were running late to formal], so their scores are very under-optimized.
 :::
 
 These results partially validate our hypothesis. The NMM does recover some benchmark performance (e.g., BoolQ improves by 20 percentage points over segmented-only), but does not fully match the frozen backbone. This gap could come from several factors... limited hyperparameter tuning, insufficient training compute, suboptimal NMM architecture choices (e.g., 2-layer MLPs may be too shallow), or potentially fundamental capacity limitations of the approach. Disentangling these factors would require more extensive ablations. The consistent improvement from distillation does confirm that representation quality, not just next-token prediction, is critical for downstream tasks.
@@ -181,7 +195,7 @@ These results partially validate our hypothesis. The NMM does recover some bench
 
 These results validate the second part of our hypothesis—the NMM can be fine-tuned to specialize in new domains. The varying recovery rates (75% for PubMedQA vs. 29% for CaseHOLD) suggest that some domains are easier to compress into learned memory than others.
 
-PubMedQA shows the strongest recovery, closing 75% of the gap between segmented-only and full attention (from 46% to 55%, vs. 58% full attention). CaseHOLD and AQUA-RAT show more modest but still meaningful improvements.
+PubMedQA shows the strongest recovery, closing 75% of the gap between segmented-only and full attention (from 46% to 55%, vs. 58% full attention). CaseHOLD and AQUA-RAT show more modest but still meaningful improvements.^[Again, these were super rushed experiments.]
 
 ## Limitations and Future Work
 
@@ -189,7 +203,7 @@ PubMedQA shows the strongest recovery, closing 75% of the gap between segmented-
 
 **2) Throughput overhead.** Our current NMM implementation introduces computational overhead that negates the theoretical efficiency gains of segmented attention. As shown in Figure 1, the segmented+NMM model currently underperforms full attention in throughput. Optimized GPU and better memory management could address this.
 
-**3) Limited hyperparameter tuning.** Due to compute and time constraints, only Winogrande and BoolQ were thoroughly tuned. Other benchmarks (CommonsenseQA, DROP, SQuAD) ran for ~30 training steps, so their scores are likely under-optimized. More extensive sweeps could improve results.
+**3) Limited hyperparameter tuning.** Due to compute and time constraints, only Winogrande and BoolQ were thoroughly tuned. Other benchmarks (CommonsenseQA, DROP, SQuAD) ran for ~30 training steps, so their scores are likely under-optimized. More extensive sweeps could improve results. We are particularly excited about distillation loss annealing.
 
 **4) Scale.** All experiments use LLaMA-3.1-8B. We would like to test whether our findings generalize to larger models where the capacity gap between NMM and full attention may be more or less pronounced.
 
