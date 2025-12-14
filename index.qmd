@@ -11,9 +11,7 @@ listing:
 page-layout: full
 title-block-banner: true
 ---
-Hi! These are the physical artifacts of projects I've worked on recently. Contact at [first name][last name]@mit.edu.
 
-
-## Recent Posts
+## Projects
 
 

@@ -1,6 +1,6 @@
 # Quarto build outputs
 _site/
-/.quarto/
+.quarto/
 6.7960-Blogpost-Titan-LLaMA-Neural-Memory-Adapters-for-Continual-Learning-/
 # R/RStudio
 .Rproj.user/
