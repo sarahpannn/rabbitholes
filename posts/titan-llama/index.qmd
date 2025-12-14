@@ -4,82 +4,65 @@ author:
   - "Sarah Pan"
   - "Sarah Dufays"
 date: "2024-12-13"
-categories: [AI, LLM, Memory, Research]
 description: "Final Project for 6.7960, Massachusetts Institute of Technology"
 image: "images/titans_overview.png"
+bibliography: references.bib
 draft: false
 ---
 
+::: {.callout-warning}
+This work was submitted as our final project for Deep Learning at MIT (6.7960).
+:::
+
 ## Motivation
 
-In NLP, we already have a bunch of very strong, off-the-shelf LLMs, but their "memory" cost grows quadratically with sequence length. Most open-source fixes are linear-time hacks—sliding windows, RAG, caching tricks, etc—rather than a true learned state. As we discuss in the background, these approaches keep the model stateless and outsource memory to context or retrieval.
+We read the Titans paper and really liked it, but we didn't want to train an end-to-end architecture from scratch. So instead, we came up with a new architecture that gives us the best of both worlds.
 
-Titans stood out to us because it is a very unique approach that does the opposite: the state is a learned architecture, not a transient context vector that disappears when the window moves on. We wanted to extend that idea and build modular Titan adapters that augment a pre-trained LLM whose long-range memory we've deliberately incapacitated.
+Off-the-shelf LLMs are extremely strong, but their expressivity is expensive as "memory" grows quadratically with sequence length. Among many others, Flash attention, sliding attention windows, linear attention, and KV-caching are techniques that provide speedups, but we were curious to know if we could **attach a learned state during post training for stateful, sub-quadratic memory**.
 
-No one has done this before: combining Titans-style neural memory with a frozen backbone as a drop-in "memory cartridge". The result is an architecture that (i) generates tokens much faster as generation length grows and (ii) can be fine-tuned by swapping in task-specific memory adapters for downstream domains.
+Titans is appealing in this regard because its memory is a deep architecture that accumulates information across full-attention segments. Rather than training a Titan model from scratch, we treat neural memory as a modular adapter that can be attached to a pretrained backbone whose long-range attention has been intentionally restricted.
 
-Architecturally, this buys us a different scaling regime. Full-attention LLaMA pays a quadratic price in sequence length, so tokens/sec inevitably drop as generations get longer. Once we segment attention, each token only attends within a fixed-size window, so generation cost is tied to segment size rather than total sequence length. With a well-optimized NMM, a segmented-with-memory model should overtake full attention beyond a few segments because the longer you generate, the larger the relative speedup.
+Concretely, we freeze a pretrained LLaMA model, replace full attention with segmented attention, and attach a Titans-style Neural Memory Module (NMM) that serves as the sole mechanism for cross-segment information flow. The memory module functions as a drop-in "cartridge" that can be trained or swapped independently while the backbone remains fixed. To our knowledge, this is the first exploration of Titans-style neural memory used in this post-training, frozen-backbone regime.^[Maybe for good reason? The motivation is clear from a Titan-first perspective, perhaps less so from a Transformers-first one.] The result is an architecture that (i) generates tokens much faster as generation length grows and (ii) can be fine-tuned by swapping in task-specific memory adapters for downstream domains.
 
-![Token throughput vs. generation length. Full-attention LLaMA slows down as sequences grow, while segmented attention keeps throughput roughly flat; our segmented+NMM model should eventually beat full attention once the memory kernels are optimized.](images/throughput_vs_generation.png)
+![Token throughput vs. generation length. Full-attention LLaMA slows down as sequences grow, while segmented attention keeps throughput roughly flat; we'll keep you posted if either of us learns enough CUDA to engineer kernels for this.](images/throughput_vs_generation.png)
 
 ::: {.callout-note}
-Note that in our prototype the throughput curve still lags slightly behind full attention because the NMM kernels are under-optimized and add extra intermediate computation, but that is a systems issue, not a limitation of the design.
+Our prototype builds on an existing open-source Titans implementation that prioritizes correctness over performance. The neural memory kernels are therefore under-optimized, introducing overhead that causes throughput to lag slightly behind full attention in practice. We consider this an engineering issue and expect substantial speedups from better implementation.
 :::
 
 ## Background
 
-Prior work on adapting language models falls into two categories.
+Our inspiration for this work falls into two categories.
 
-**Memory and state.** RNNs and LSTMs compress history into a fixed-size hidden vector but forget distant information. SSMs [@gu2021efficiently] revisit this idea by improving stability and efficiency with linear dynamics. Transformers on the other hand store everything explicitly via attention, relying on a KV cache that grows with sequence length. This means every new token attends over all previous ones, which gives precise access to the past but with quadratic cost in the context length.
+**Memory and state.** RNNs and LSTMs compress history into a fixed-size hidden vector but eventually forget distant information and cannot be parallelized. SSMs [@gu2021efficiently] revisit this idea by improving stability and parallelizability. Transformers on the other hand store the entire sequence explicitly, relying on an attention "state" that grows quadratically with sequence length. For the record, we think it's totally understated how extremely parallelizable and expressive transformers are--but mitigating memory consumption is still a key concern.
 
-::: {.callout-tip}
-This illustrates a core tradeoff in ML: recurrent models compress history into a fixed-size state but struggle with very long contexts, while transformers store everything explicitly and become slow and memory-hungry.
-:::
-
-**Parameter-efficient adapters.** Full fine-tuning is expensive and risks catastrophic forgetting. LoRA [@hu2021lora] instead adds trainable low-rank factors to frozen weight matrices, reducing trainable parameters by orders of magnitude while preserving expressivity. Cartridges [@hewitt2024cartridges] go further, treating the KV cache as an adapter: learned virtual KV vectors are prepended to the context so the frozen model behaves as if it had read a particular corpus. Both keep backbone weights untouched.
+**Parameter-efficient adapters.** Full fine-tuning is expensive and risks catastrophic forgetting. LoRA [@hu2021lora] instead adds trainable low-rank factors to frozen weight matrices, which reduces the trainable parameters by orders of magnitude while preserving expressivity. Prefix-tuning [@li2021prefix] prepends learned continuous prompts to the input sequence, allowing the model to behave as if conditioned on specific tasks or domains while keeping the backbone frozen.
 
 ### Titans: Deep Neural Memory as State
 
-**Titans: deep neural memory as state.** Titans [@behrouz2024titans], introduced by Behrouz et al. [Google Research] in 2024, combines transformer-level accuracy with RNN-like speeds by maintaining a deep neural memory alongside attention. Titans introduces three fundamental innovations:
+**Titans: deep neural memory as state.** Titans [@behrouz2024titans] combines recurrent architectures as long-term memory with localized attention windows as short-term memory. These were the three things that we thought were the most important to understand from the paper. 
 
-**1. True Test-Time Memory.** Instead of just expanding context windows or adding retrieval mechanisms, Titans learns to memorize at test time. The neural long-term memory module learns what to remember while running, gets smarter with every interaction, and maintains context across extended use.
+**1. Titans as a Mega-Abstraction of LSTMs.** Each cell state is a sub-sequence of tokens, but instead of forget gates and input gates, an MLP learns how to incorporate/get rid of information across a sequence. In other words, instead of carrying some $h_t$ forward, Titans carry a long-term memory module $M_t$ whose weights + fast gradient updates determine the state. 
 
-**2. Surprise-Based Memory.** Rather than treating every token in the context as equally important, Titans uses a learned "surprise" score to decide what is worth remembering and therefore what actually gets written into its neural memory. We can compare this to how in human psychology, we quickly forget routine events but remember unexpected, surprising, or highly emotional events.
+![Reading from memory looks like "querying the state" via a forward pass, and updating the state looks like propgating a loss backward.](images/titans_overview.png)
 
-::: {.callout-warning}
-**Low surprise:** If the model is reading the 6.7960 course page and its memory is expecting yet another "PSET released" announcement, the gradient (surprise) is low so it can safely skip memorizing this in permanent storage.
+**2. Fast and Slow Updates.** Long-term memory aims to memorize what happened at a previous attention window. Titans defines a "fast" memory loss $l(\mathcal{M}_{t -1}; x_t) = || q_t - k_t ||^2$ and updates its state over chunks in a sequence as such
 
-**High surprise:** If the same course page suddenly says "All remaining PSETs are cancelled; everyone gets an A! =)" the gradient will be very high, indicating that this is important and should be prioritized for permanent storage.
-:::
+$$
+\mathcal{M}_t = (1 - \alpha_t) \mathcal{M}_{t - 1} + S_t \\ 
+$$ {#eq-surprise-update}
+$$
+S_t = \eta_t S_{t - 1} - \theta_t \nabla l(\mathcal{M}_{t -1}; x_t).
+$$
 
-The model uses this internal error signal (the gradient) as a mathematical equivalent of saying "Pay attention to this!" This allows selective memory updates with only the most important information.
+The surprise update rule is shown in @eq-surprise-update. Here, $\alpha_t$ serves as the gating mechanism, like that in RNNs. 
 
-Titans considers both "momentary surprise" (current input) and "past surprise" (recent context flow) to make sure that relevant subsequent information is captured even if individual tokens aren't surprising.
+On the flip side, we still care about the language modeling objective and want to update the weights that parameterize $\mathcal{M}_t$ to optimize retrieval of the right information. These are the "slow updates" that operate on the timescale of our optimizer.
 
-![Surprise update rule. Memory M~t~ = M~t-1~ + S~t~, where S~t~ mixes momentum from past surprise with the current prediction-error gradient.](images/surprise_formula.png)
+**3. This Can be Made Practical.** A naïve implementation of these per-token weight updates is inherently sequential. But with a few tricks, you can actually vectorize much of the computation.
 
-**3. Adaptive Forgetting.** To better manage the memory's limited capacity, Titans adds an adaptive forgetting gate (similar to the gating mechanism in modern RNNs) that scales the previous memory before adding the new surprise update, so the model can softly decay stale information or, in the extreme, wipe the memory entirely.
 
-**Titans factor memory into three pieces:**
 
-- **Short-term memory:** localized attention windows over recent tokens
-- **Long-term memory:** a small MLP that maps keys to values, updated online via the surprise loss
-- **Persistent memory:** task-level parameters independent of the input sequence
-
-::: {.callout-note}
-Note that Ali Behrouz (Titans author) mentions on the Cognitive Revolution podcast [@behrouz2025podcast] that persistent memory is mostly there for a human-memory analogy and isn't really needed in practice, so we ignore it in our implementation and just add the short and long-term memory pieces.
-:::
-
-![Titans MAC architecture.](images/titans_overview.png)
-
-**Legend:**
-- **Top band:** long-term contextual memory (Neural Memory)
-- **Middle band:** short-term sequence + attention (Core)  
-- **Bottom band:** persistent task-specific parameters (Persistent Memory)
-
-Neural memory stores a compressed summary of past tokens that is retrieved, updated, and injected back into attention over the current sequence.
-
-In summary, memory is not a vector or cache but a trainable module whose weights are the state—the model learns and adapts dynamically as new data arrives.
 
 ## Methods
 
@@ -89,7 +72,7 @@ In summary, memory is not a vector or cache but a trainable module whose weights
 
 The next step of the process is to augment the localized attention calculation with "long-term memory" that is retrieved from the NMM. The NMM will try to recall what happened at the previous local attention window.
 
-![As chunks c1–c5 progress, the NMM is queried then updated based on prediction error, persisting information across the full sequence.](images/temporal_loop.png)
+![As chunks c1–c5 progress, the NMM is queried then updated based on prediction error, making information persistent across the full sequence.](images/temporal_loop.png)
 
 It might be helpful to "flip" the time axis when thinking about the fast update process. If we imagine each localized attention segment to be its own element in a sequence, this process closely resembles that of an LSTM or RNN. However, instead of learning weights that modulate previous hidden cell states, the hidden state itself is parameterized as a deep, learned architecture.
 
@@ -215,47 +198,4 @@ PubMedQA shows the strongest recovery, closing 75% of the gap between segmented-
 ## References
 
 ::: {#refs}
-:::
-
-::: {.hidden}
-## Bibliography
-
-@hu2021lora
-Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., & Chen, W. (2021). LoRA: Low-Rank Adaptation of Large Language Models. arXiv preprint arXiv:2106.09685.
-
-@hewitt2024cartridges
-Hewitt, J., et al. (2024). Cartridges: Compact Representations for LLM Reasoning. arXiv preprint arXiv:2506.06266.
-
-@gu2021efficiently
-Gu, A., Goel, K., & Ré, C. (2021). Efficiently Modeling Long Sequences with Structured State Spaces. arXiv preprint arXiv:2111.00396.
-
-@behrouz2024titans
-Behrouz, A., et al. (2024). Titans: Learning to Memorize at Test Time. Google Research. arXiv preprint arXiv:2501.00663.
-
-@sakaguchi2019winogrande
-Sakaguchi, K., et al. (2019). WinoGrande: An Adversarial Winograd Schema Challenge at Scale. arXiv preprint arXiv:1907.10641.
-
-@clark2019boolq
-Clark, C., et al. (2019). BoolQ: Exploring the Surprising Difficulty of Natural Yes/No Questions. arXiv preprint arXiv:1905.10044.
-
-@talmor2018commonsenseqa
-Talmor, A., et al. (2018). CommonsenseQA: A Question Answering Challenge Targeting Commonsense Knowledge. arXiv preprint arXiv:1811.00937.
-
-@dua2019drop
-Dua, D., et al. (2019). DROP: A Reading Comprehension Benchmark Requiring Discrete Reasoning. arXiv preprint arXiv:1903.00161.
-
-@rajpurkar2016squad
-Rajpurkar, P., et al. (2016). SQuAD: 100,000+ Questions for Machine Comprehension of Text. arXiv preprint arXiv:1606.05250.
-
-@jin2019pubmedqa
-Jin, Q., et al. (2019). PubMedQA: A Dataset for Biomedical Research Question Answering. arXiv preprint arXiv:1909.06146.
-
-@chalkidis2021lexglue
-Chalkidis, I., et al. (2021). LexGLUE: A Benchmark Dataset for Legal Language Understanding. arXiv preprint arXiv:2110.00976.
-
-@ling2017aqua
-Ling, W., et al. (2017). AQUA-RAT: Algebra Question Answering Dataset. GitHub repository.
-
-@behrouz2025podcast
-Behrouz, A. (2025). Cognitive Revolution podcast. YouTube.
 :::
