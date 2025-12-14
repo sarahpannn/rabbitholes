@@ -1,0 +1,42 @@
+# Quarto build outputs
+_site/
+.quarto/
+*.html
+*.xml
+
+# Claude Code
+.claude/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.env
+.venv
+venv/
+
+# R
+.Rproj.user/
+*.Rproj
+.RData
+.Ruserdata
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
