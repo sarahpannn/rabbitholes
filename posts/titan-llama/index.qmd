@@ -11,7 +11,7 @@ draft: false
 ---
 
 ::: {.callout-warning}
-This work was submitted as our final project for Deep Learning at MIT (6.7960). Many of the results are still preliminary as work is ongoing.
+This work was submitted as our final project for Deep Learning at MIT (6.7960). Much of the results are still preliminary and poorly ablated as work is ongoing.
 :::
 
 ## Motivation
@@ -27,7 +27,7 @@ Concretely, we freeze a pretrained LLaMA model, replace full attention with segm
 ![Token throughput vs. generation length. Full-attention LLaMA slows down as sequences grow, while segmented attention keeps throughput roughly flat; we'll keep you posted if either of us learns enough CUDA to engineer kernels for this.](images/throughput_vs_generation.png)
 
 ::: {.callout-note}
-Our prototype builds on an existing open-source Titans implementation that prioritizes correctness over performance. The neural memory kernels are therefore under-optimized, introducing overhead that causes throughput to lag slightly behind full attention in practice. We consider this an engineering issue and expect substantial speedups from better implementation.
+Our prototype builds on an existing open-source Titans implementation that prioritizes correctness.^[Thanks to Phil Wang and other contributors for https://github.com/lucidrains/titans-pytorch !!] The neural memory kernels are probably under-optimized, introducing overhead that causes throughput to lag slightly behind full attention in practice. We consider this an engineering issue and expect substantial speedups from better implementation.
 :::
 
 ## Background
@@ -63,21 +63,29 @@ On the flip side, we still care about the language modeling objective and want t
 
 
 ```python
-# X: [b, d]   (tokens in a chunk)
-# W0: [d, d]
-# A: [b, b]   (A = Θ_b B_b)
+# X: [N, b, d]   (N chunks of b tokens)
+u_prev = 0                      # last "update" state for this param (shape = param_shape)
+m_prev[o] = 0 for o in 1..O     # last momentum states
 
-# residuals r_i = (W0 x_i - x_i)
-R = X @ W0.T - X  # [b, d]
+for t in range(N):
+    # 1) FAST write signal inside the chunk (parallel over b tokens)
+    #    think: per-token grad of an associative loss wrt memory params
+    s_tok = grad_mem_loss(M, X[t])            # shape: [b, param_shape]   (conceptually)
 
-# per-token outer products g_i = r_i x_i^T   -> [b, d, d]
-G = torch.einsum('bi,bj->bij', R, X)  # [b, d, d]
+    # (optional) reduce tokens -> one chunk surprise (still parallel)
+    s = sum_i theta[t,i] * s_tok[i]           # shape: [param_shape]
 
-# weighted prefix sums for every t in {1..b}:  U_t = Σ_i A[t,i] * G_i  -> [b, d, d]
-U = torch.einsum('ti,ijk->tjk', A, G) # [b, d, d]
+    # 2) SLOW accumulator across chunks (scan in t)
+    for o in 1..O:
+        m[o] = eta[o,t] * m_prev[o] + (s if o==1 else m[o-1])
 
-# if you only need the "end of chunk" update (t=b), grab:
-dW_end = U[-1] # [d, d]
+    u = sum_o comb[o,t] * m[o]                # (this is the “einsum combine orders” idea)
+
+    # 3) FORGET/DECAY across chunks (another scan)
+    u = (1 - alpha[t]) * u_prev + u
+
+    apply_update_to_memory(M, u)              # e.g., M <- M + u   (sign convention depends)
+    u_prev, m_prev = u, m
 
 ```
 
@@ -118,12 +126,12 @@ In our setting, we want the NMM to first recover baseline capabilities of the ba
 
 ## Experiments
 
-::: {.callout-important}
+
 **Hypothesis:** A Titans-style neural memory, used as an adapter on top of a frozen LLM backbone, can
 
-(1) recover backbone LLM capabilities  
-(2) be fine-tuned to specialize in new domains
-:::
+**(1)** recover backbone LLM capabilities  
+**(2)** and be fine-tuned to specialize in new domains.
+
 
 **Experiment 1: Can Titan-LLaMA recover base LM abilities?**
 

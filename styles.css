@@ -19,18 +19,27 @@ body {
 .quarto-title-banner {
   background: white;
   border-bottom: 1px solid #dee2e6;
-  padding: 2rem 0 1rem 0;
+  padding: 1.5rem 0 0.5rem 0;
 }
 
 .title {
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
 }
 
 .subtitle {
   color: #6c757d;
   font-weight: 400;
   margin-bottom: 0;
+}
+
+/* Reduce spacing after title banner */
+.quarto-title-banner + .quarto-layout-panel {
+  margin-top: 0;
+}
+
+.quarto-title-banner + * {
+  margin-top: 0 !important;
 }
 
 /* Blog post listings */
