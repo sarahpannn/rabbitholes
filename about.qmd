@@ -2,6 +2,6 @@
 title: "About"
 ---
 
-Hey! I'm Sarah Pan, and I'm a sophomore at MIT. I love neural networks and reverse DCFs. This blog will host occasional writing about projects I've done. I'm also tangentially interested in books, markets (alternative ones), and treadmills.
+Hey! My name is Sarah Pan, and I'm a sophomore at MIT. I spend a lot of time thinking about neural networks and [reverse DCFs](https://public.gps100.com/). This blog will host occasional writing about projects I've done.
 
 Feel free to reach out on [Twitter](https://x.com/spantacular) or via email at [first name][last name]@mit.edu.
