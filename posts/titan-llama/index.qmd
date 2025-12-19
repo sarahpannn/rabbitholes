@@ -1,5 +1,5 @@
 ---
-title: "Titan-LLaMA: Neural Memory Adapters for Continual Learning"
+title: "Titan-LLaMA: Cartridge-Style Neural Memory Adapters for LLMs"
 author: 
   - "Sarah Pan"
   - "Sarah Dufays"
@@ -177,16 +177,17 @@ Building on the language modeling success, we add attention distillation (descri
 
 | Benchmark | Full-Attn LLaMA | Segmented-only | Titan-LLaMA (LM loss) |
 |-----------|-----------------|----------------|------------------------|
-| **Winogrande** | 60.5% | 48.4% | 52.3% (+3.9%) |
-| **BoolQ** | 75.0% | 43% | 63% (+20%) |
-| CommonsenseQA | 75.0% | 13% | 18% (+5%) |
-| DROP | 59.5% | 0% | 7.4% (+7.4%) |
-| SquadV2 | 77% | 0% | 6.25% (+6.25%) |
+| Winogrande | 60.5% | 48.4% | 52.3% |
+| BoolQ | 75.0% | 43% | 63% |
+| CommonsenseQA | 75% | 13% | 20% |
+| DROP | 59.5% | 0% | 27.3% |
+| SquadV2 | 77% | 0% | 9% |
 
 We therefore conclude that LM loss alone teaches the NMM to predict tokens, but not to build the rich intermediate representations that full attention provides. Attention distillation forces the NMM's hidden states to match the teacher model's representations, which is necessary for successful downstream task performance.
 
 ::: {.callout-note}
-Note that **only Winogrande and BoolQ were properly hyperparameter-tuned**; for the other tasks we only ran ~30 training steps^[because we were running late to formal], so their scores are very under-optimized.
+Random guessing for the above tasks are 50%, 50%, and 20% for Winogrande, BoolQ, and CommonsenseQA. 
+DROP and SquadV2 are short open response.
 :::
 
 These results partially validate our hypothesis. The NMM does recover some benchmark performance (e.g., BoolQ improves by 20 percentage points over segmented-only), but does not fully match the frozen backbone. This gap could come from several factors... limited hyperparameter tuning, insufficient training compute, suboptimal NMM architecture choices (e.g., 2-layer MLPs may be too shallow), or potentially fundamental capacity limitations of the approach. Disentangling these factors would require more extensive ablations. The consistent improvement from distillation does confirm that representation quality, not just next-token prediction, is critical for downstream tasks.
@@ -197,9 +198,9 @@ These results partially validate our hypothesis. The NMM does recover some bench
 
 | Benchmark | Full-Attn LLaMA | Segmented-only | Titan-LLaMA (fine-tuned) |
 |-----------|-----------------|----------------|---------------------------|
-| PubMedQA (Biomed) | 58% | 46% | 55% |
-| CaseHOLD (Legal) | 33% | 19% | 23% |
-| AQUA-RAT (Math) | 28% | 22% | 24.8% |
+| PubMedQA (Biomed) | **58%** | 46% | 55% |
+| CaseHOLD (Legal) | **33%**| 19% | 24% |
+| AQUA-RAT (Math) | **28%** | 22% | **28%** |
 
 These results validate the second part of our hypothesis—the NMM can be fine-tuned to specialize in new domains. The varying recovery rates (75% for PubMedQA vs. 29% for CaseHOLD) suggest that some domains are easier to compress into learned memory than others.
 
@@ -207,7 +208,7 @@ PubMedQA shows the strongest recovery, closing 75% of the gap between segmented-
 
 ## Limitations and Future Work
 
-**1) Incomplete recovery.** Even with distillation, we don't fully recover full-attention performance on most benchmarks. The gap suggests that some information encoded in full attention is fundamentally difficult to compress into a learned memory module. Future work could explore larger NMM architectures or different distillation strategies.
+**1) Incomplete recovery.** Even with distillation, we don't fully recover full-attention performance on some of our benchmarks. The gap suggests that some information encoded in full attention is fundamentally difficult to compress into a learned memory module. Future work could explore larger NMM architectures or different distillation strategies.
 
 **2) Throughput overhead.** Our current NMM implementation introduces computational overhead that negates the theoretical efficiency gains of segmented attention. As shown in Figure 1, the segmented+NMM model currently underperforms full attention in throughput. Optimized GPU and better memory management could address this.
 
