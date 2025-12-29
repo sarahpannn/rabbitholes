@@ -1,0 +1,42 @@
+---
+title: "Creating the Parliamentary Debate Engine"
+author: 
+  - "Sarah Pan"
+date: "2025-12-28"
+image: "images/diagram.png"
+draft: false
+---
+
+![TL;DR Agents debate each other many times and their relative win rates quantify delta to consensus.](images/diagram.png)
+
+## How do you quantify conviction?
+
+**Good companies are not hard to find, but cheap ones are.** To have high conviction that we will get paid, we need to understand *why* the market is wrong and how to validate our thesis when the time comes.
+
+The hardest part about investing for me has been turning qualitative observations into something quantitative and actionable. After running a model, I might feel great about the base case for the next quarter, but my valuation depends hugely on long-term performance—this is something I am far less certain about.
+
+Is there a way to outsource my conviction?^[without hiring a consulting agency]
+
+## How do you disagree with Street?
+
+In trying to understand how some of my very talented peers invest, I've gathered that everything seems to boil down to a few key debates and where people stand on those debates. We'll try to find some data to support their views on those debates. Maybe we make a call or two, look at some alternative data, or read analyst reports.
+
+But two people with access to the same data might still disagree. There's something about us as people with unique world experiences that biases (non-pejoratively) us toward different interpretations of the same information.
+
+I built the Parliamentary Debate Engine to go about the process in the other direction. Given a set of information and a few distinct personas that we identify before the fact, **can we see which arguments are likely to play out?**
+
+The project simulates parliamentary-style debates using LLM agents and a RAG database. By tracking the relative win rates of different personas over thousands of simulations, we can arrive at a quantification of a particular argument's "delta to consensus."
+
+## Vibe investing?
+
+I will never read a 10k in the shower, but Claude will. Extracting information from earnings calls and business conference transcripts feels like drudgery to me, but any LLM I can make an API call to nowadays will do it in a couple of seconds. 
+
+The edge has been and will always information, but the internet, credit card data, and expert calls will become increasingly easier to process.
+
+I think the differentiator in the coming years will be idea quality. If we can model the debates, we can better model the price.
+
+### Acknowledgements
+
+Thanks to Sean-Winston Luo, Papa Mensah, and Kate Wei for being a great team, and to Point72 for hosting us as finalists in their national stock pitch competition!
+
+Code can be found [here](https://github.com/sarahpannn/ai-debate-engine/tree/master).
