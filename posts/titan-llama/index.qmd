@@ -34,13 +34,13 @@ Our prototype builds on an existing open-source Titans implementation that prior
 
 Our inspiration for this work falls into two categories.
 
-**Memory and state.** RNNs and LSTMs compress history into a fixed-size hidden vector but eventually forget distant information and cannot be parallelized. SSMs [@gu2021efficiently] revisit this idea by improving stability and parallelizability. Transformers on the other hand store the entire sequence explicitly, relying on an attention "state" that grows quadratically with sequence length. For the record, we think it's totally understated how extremely parallelizable and expressive transformers are--but mitigating memory consumption is still a key concern.
+**Memory and state.** RNNs and LSTMs compress history into a fixed-size hidden vector but eventually forget distant information and cannot be parallelized. SSMs [@gu2022efficientlymodelinglongsequences] revisit this idea by improving stability and parallelizability. Transformers on the other hand store the entire sequence explicitly, relying on an attention "state" that grows quadratically with sequence length. For the record, we think it's totally understated how extremely parallelizable and expressive transformers are--but mitigating memory consumption is still a key concern.
 
-**Parameter-efficient adapters.** Full fine-tuning is expensive and risks catastrophic forgetting. LoRA [@hu2021lora] instead adds trainable low-rank factors to frozen weight matrices, which reduces the trainable parameters by orders of magnitude while preserving expressivity. Prefix-tuning [@li2021prefix] prepends learned continuous prompts to the input sequence, allowing the model to behave as if conditioned on specific tasks or domains while keeping the backbone frozen.
+**Parameter-efficient adapters.** Full fine-tuning is expensive and risks catastrophic forgetting. LoRA [@hu2021lora] instead adds trainable low-rank factors to frozen weight matrices, which reduces the trainable parameters by orders of magnitude while preserving expressivity. Prefix-tuning [@li2021prefixtuningoptimizingcontinuousprompts] prepends learned continuous prompts to the input sequence, allowing the model to behave as if conditioned on specific tasks or domains while keeping the backbone frozen.
 
 ### Titans: Deep Neural Memory as State
 
-**Titans: deep neural memory as state.** Titans [@behrouz2024titans] combines recurrent architectures as long-term memory with localized attention windows as short-term memory. These were the three things that we thought were the most important to understand from the paper. 
+**Titans: deep neural memory as state.** Titans [@behrouz2024titanslearningmemorizetest] combines recurrent architectures as long-term memory with localized attention windows as short-term memory. These were the three things that we thought were the most important to understand from the paper. 
 
 **1. Titans as a Mega-Abstraction of LSTMs.** Each cell state is a sub-sequence of tokens, but instead of forget gates and input gates, an MLP learns how to incorporate/get rid of information across a sequence. In other words, instead of carrying some $h_t$ forward, Titans carry a long-term memory module $M_t$ whose weights + fast gradient updates determine the state. 
 
@@ -139,15 +139,15 @@ We test whether the NMM can compensate for the information lost when replacing f
 
 *1a. Language Modeling:* Train the Titan-LLaMA adapter on 1B tokens from SlimPajama-627B and FineWeb-EDU. Report validation perplexity and token accuracy.
 
-*1b. NLP Benchmarks:* Evaluate on Winogrande [@sakaguchi2019winogrande], BoolQ [@clark2019boolq], CommonsenseQA [@talmor2018commonsenseqa], DROP [@dua2019drop], SQuAD [@rajpurkar2016squad], and PubMedQA [@jin2019pubmedqa]. Compare against frozen LLaMA (full attention) and segmented-only (ablation).
+*1b. NLP Benchmarks:* Evaluate on Winogrande [@sakaguchi2019winograndeadversarialwinogradschema], BoolQ [@clark2019boolqexploringsurprisingdifficulty], CommonsenseQA [@talmor2019commonsenseqaquestionansweringchallenge], DROP [@dua2019dropreadingcomprehensionbenchmark], and SQuAD v2 [@rajpurkar2018knowdontknowunanswerable]. Compare against frozen LLaMA (full attention) and segmented-only (ablation).
 
 **Experiment 2: Domain Adaptation**
 
 Can we train domain-specific NMMs that specialize to new areas?
 
-- **Biomed:** PubMed corpus, PubMedQA [@jin2019pubmedqa]
-- **Legal:** LexGLUE benchmark [@chalkidis2021lexglue]
-- **Math:** AQUA-RAT word problems [@ling2017aqua]
+- **Biomed:** PubMed corpus, PubMedQA [@jin2019pubmedqadatasetbiomedicalresearch]
+- **Legal:** LexGLUE benchmark [@chalkidis2022lexgluebenchmarkdatasetlegal]
+- **Math:** AQUA-RAT word problems [@ling2017programinductionrationalegeneration]
 
 ## Results
 
