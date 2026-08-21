@@ -15,7 +15,9 @@ Almost a year later, I have gone through multiple iterations of this project, tr
 Still, I find myself asking fundamental questions about this research direction.
 
 > Why should gradients be computed at test time? What limits on learning should the phrasing of test time imply?
+>
 > Why was I working on extending context lengths when agent harnesses had `\compact` as a way to summarize the entire token window?
+>
 > Why spend time on TTT when KV caches exist and the great engineering feat of Flash Attention has already quelled much of our O(n^2) fears?
 
 As I look around at the mess of files in my working repository, with outdated docs and random agent instruction files strewn about, finding answers to these questions feels all the more important and yet frustratingly nebulous.
