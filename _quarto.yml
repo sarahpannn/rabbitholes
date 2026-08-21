@@ -1,5 +1,11 @@
 project:
   type: website
+  render:
+    - "*.qmd"
+    - "posts/**/*.qmd"
+    - "!posts/titan-llama/**"
+    - "!posts/titan-llama-archive/**"
+    - "!posts/titan-llama-part-two/**"
 
 website:
   title: "Rabbitholes"
@@ -18,11 +24,9 @@ format:
   html:
     theme: 
       light: [cosmo, styles.css]
+    html-math-method: katex
     toc: true
     code-copy: true
     anchor-sections: true
 
 page-layout: full
-
-
-

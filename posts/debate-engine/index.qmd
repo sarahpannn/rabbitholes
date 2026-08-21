@@ -31,7 +31,7 @@ The project simulates parliamentary-style debates using LLM agents and a RAG dat
 
 I will never read a 10k in the shower, but Claude will. Extracting information from earnings calls and business conference transcripts feels like drudgery to me, but any LLM I can make an API call to nowadays will do it in a couple of seconds. 
 
-The edge has been and will always information, but the internet, credit card data, and expert calls will become increasingly easier to process.
+The edge has been and will always be information, but the internet, credit card data, and expert calls will become increasingly easier to process.
 
 I think the differentiator in the coming years will be idea quality. If we can model the debates, we can better model the price.
 
