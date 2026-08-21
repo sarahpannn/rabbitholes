@@ -2,6 +2,10 @@
 title: "About"
 ---
 
-Hey! My name is Sarah Pan, and I'm a sophomore at MIT. I spend a lot of time thinking about neural networks and [reverse DCFs](https://public.gps100.com/). This blog will host occasional writing about projects I've done.
+Hey! My name is Sarah Pan, and I'm a junior at MIT. 
+I'm interested in the highest leverage modes toward advancing machine intelligence.
+I've previously spent time at Jeremy Howard's [answer.ai](https://www.answer.ai/) and on working on agents on the publics side at [Coatue](https://www.coatue.com/).
+Generally, I spend a lot of time training neural networks and [reverse DCFs](https://public.gps100.com/). 
+This blog will host occasional writing about projects I've done.
 
 Feel free to reach out on [Twitter](https://x.com/spantacular) or via email at [first name][last name]@mit.edu.
