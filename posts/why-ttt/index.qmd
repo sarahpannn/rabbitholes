@@ -8,55 +8,55 @@ draft: false
 ---
 
 I was first introduced to test-time training (TTT) by Ekin Akyürek et al.’s SoTA performance on ARC-AGI [@akyurek2024surprising].
-This idea was nonintuitive but compelling nonetheless, so I structured my deep learning final project around adapting pre-trained language models with Titan modules for long context memory efficiency.
-Within an hour of training on a single GPU, updates made at test time had already recovered much of the performance gap between full fidelity attention and a less expressive version.
+This idea was nonintuitive but compelling nonetheless, so I structured my deep learning final project around adapting pre-trained language models with Titan modules for long-context memory efficiency.
+Within an hour of training on a single GPU, updates made at test time had already recovered much of the performance gap between full-fidelity attention and a less expressive version.
 
 Almost a year later, I have gone through multiple iterations of this project, trying out new architecture changes and training methods.
 Still, I find myself asking fundamental questions about this research direction.
 
 > Why should gradients be computed at test time? What limits on learning should the phrasing of test time imply?
-> Why was I working on extending context lengths when agent harnesses had `\compact` as a way to summarize the entire token window? 
+> Why was I working on extending context lengths when agent harnesses had `\compact` as a way to summarize the entire token window?
 > Why spend time on TTT when KV caches exist and the great engineering feat of Flash Attention has already quelled much of our O(n^2) fears?
 
 As I look around at the mess of files in my working repository, with outdated docs and random agent instruction files strewn about, finding answers to these questions feels all the more important and yet frustratingly nebulous.
 
-To this end, I hope to give digestible arguments for how I have made sense of TTT.
+To this end, I want to share the two arguments that have ultimately made the most sense to me.
 
-## TTT need not be for learning new information but can create important meta objectives
+## TTT need not be for learning new information but can create important meta-objectives
 
 > Give a man a fish, and you feed him for a day. Teach a man to fish, and you feed him for a lifetime.
 
-Test-time training usually involves an inner loss, the objective that you optimize for at test-time, and an outer loss, which is the typical loss optimized for when training [@bottou1992local; @joachims1999transductive; @sun2020ttt; @gandelsman2022mae; @sun2024learning; @behrouz2025titans; @bartler2022mt3].
+Test-time training usually involves an **inner loss**, the objective that you optimize for at test time, and an **outer loss**, which is the typical loss optimized for when training [@bottou1992local; @joachims1999transductive; @sun2020ttt; @gandelsman2022mae; @sun2024learning; @behrouz2025titans; @bartler2022mt3].
 The inner loss usually represents a self-supervised objective, such as denoising a corrupted input or otherwise learning input → output relationships.
 During inference, the gradient of this loss is calculated with respect to a subset of weights within the model, which are optimized to minimize this loss before outputting a final response.
 
-For instance, if a model encounters a situation where it needs to differentiate between a cat and a dog, the inner loop might first train on differentiating corrupted images of dogs and cats before outputting a final response. [@sun2020ttt]
+For instance, if a model encounters a situation where it needs to differentiate between a cat and a dog, the inner loop might first train on differentiating corrupted images of dogs and cats before outputting a final response [@sun2020ttt].
 The idea is that by optimizing for this tangential objective, the model at large will have a more robust idea of what a cat is and what a dog is.
 
 Before 2024, the dominant motivation of test-time training was to handle distribution shifts.
 However, thanks to contemporary data scaling, very few practical use cases remain truly out of distribution now.
-A tangential argument, and perhaps the more important one to be had today, is that the presence of an inner loop creates a meta-learning problem where instead of teaching a model what to know, we teach it to maximize its adaptability to new information.
-In the same way that reinforcement learning creates the instrumental objectives for LLMs to build their own priors via generation of intermediate reasoning tokens, test-time training creates an internal environment that is responsive to inner loop gradient updates as a means to the outer loop objective.
+A tangential argument, and perhaps the more important one to be had today, is that **the presence of an inner loop creates a meta-learning problem where instead of teaching a model what to know, we teach it to maximize its adaptability to new information.**
+In the same way that reinforcement learning creates the instrumental objectives for LLMs to build their own priors via generation of intermediate reasoning tokens, test-time training creates an internal environment that is responsive to inner-loop gradient updates as a means to the outer-loop objective.
 
 Instead of spending more time finding diverse images of cats and dogs to show to our model, we can teach our model to generate those "adversarial images" for itself [@sun2020ttt].
-Robots can learn residuals over their fixed policies through selectively ingesting aspects of their environments, improving their adaption to human demonstration data [@finn2017oneshot; @finn2017maml].
+Robots can learn residuals over their fixed policies through selectively ingesting aspects of their environments, improving their adaptation to human demonstration data [@finn2017oneshot; @finn2017maml].
 In LaCT and Titans, the inner loop objective is used to memorize historical context as a way to provide cheap compaction [@zhang2025lact; @behrouz2025titans].
 Constructing an inner loop objective turns training into teaching a model to fish for the right things.
 
-## Test Time Training has outperformed ICL baselines and is an effective use of inference compute
+## Test-Time Training has outperformed ICL baselines and is an effective use of inference compute
 
 Scaling test-time compute has been a stepwise improvement for LLM performance, which currently takes the form of generating additional tokens.
 These are largely hidden as reasoning tokens or visible as verbose outputs and dense text files that crowd working directories.
 I like the abstraction that the extravagant token outputs are like intermediate binaries for LLMs, not meant for human consumption but instead are ingested into the LLM’s internal state via ICL.
 
-The KV cache is the modern day equivalent to something like an RNN’s hidden state that is updated over time.
-Instead of compaction into a fixed size state, the KV cache grows linearly with sequence length.
+The KV cache is the modern-day equivalent to something like an RNN’s hidden state that is updated over time.
+Instead of compaction into a fixed-size state, the KV cache grows linearly with sequence length.
 Much research and engineering has gone into efficient processing of the KV cache, but most approaches keep this fundamental mapping from words to virtual KV tokens.
-Learning more in this regime requires either growing the cache or improving the density of relevant information stored within it, but both of these approaches evade a more fundamental question of what the best form of test-time prior formation is in LLMs.
-In some ways, KV caches to long context understanding are like the n-gram to natural language understanding.
+Learning more in this regime requires either growing the cache or improving the density of relevant information stored within it, but both of these approaches evade a more fundamental question of **what the best form of test-time prior formation is in LLMs**.
+In some ways, KV caches may be to long-context understanding what n-grams are to language modeling.
 
-Inferencing transformers is fundamentally constrained by time-wise dependencies–you need to generate the previous token before the next one.
+Inference with transformers is fundamentally constrained by time-wise dependencies—you need to generate the previous token before the next one.
 Instead of spending all the time generating token “binaries” that serve the sole purpose of producing a better prior for the next token, some fraction of that compute should be used to train on the context.
 In countless academic papers, we have seen leaps and bounds in progress as these intermediate scratchpad calculations literally upweight the relevant clusters of neurons in the model.
 Countless others have found regimes where gradients are a better use of additional inference compute than either more context or more generated tokens [@gupta2026mapd; @bansal2026context; @hubotter2024sift; @gozeten2025provably].
-Being able to scale TTT, guide it toward different ends, engineer it for efficiency, and study the safety implications of changing even a small subset of weights at inference are all important parts of prioritizing learning in this era of large inference budgets.
+Scaling TTT, guiding it toward different ends, engineering it for efficiency, and studying the safety implications of changing even a small subset of weights at inference are all important parts of prioritizing learning in this era of large inference budgets.
