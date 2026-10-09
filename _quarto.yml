@@ -3,7 +3,6 @@ project:
   render:
     - "*.qmd"
     - "posts/**/*.qmd"
-    - "!posts/titan-llama/**"
     - "!posts/titan-llama-archive/**"
     - "!posts/titan-llama-part-two/**"
 

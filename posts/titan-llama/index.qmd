@@ -1,61 +1,48 @@
 ---
-title: "Titan-LLaMA: Learning KV Memory at Inference Time"
+title: "Titan-LLaMA: Retrofitting Pre-Trained LLMs with External Neural Memory Modules"
 author: 
   - "Sarah Pan"
-date: "2025-12-13"
+date: "2026-10-10"
 # description: "Final Project for 6.7960, Massachusetts Institute of Technology"
-image: "images/titans_overview.png"
+image: "images/schematic.png"
 bibliography: references.bib
 draft: false
 ---
+*Accepted to NeurIPS LCFM Workshop*
 
-*A first foray into recognizing KV caches as a model within a model.*
+::: {.callout-note appearance="simple" icon="false"}
+## TL;DR
 
-Transformers are the de-facto architectural choice for large language models. 
-They compute attention scores over increasingly long context lengths, which was largely been made possible by KV-caching that stores previous key and value activations.
-The costs of such a linearly increasing cache size motivates research to manage cache size while maintaining expressivity.
+We retrofit a pre-trained LLM to use RNNs for long-context dependencies. Attention capabilities scale well, but their quadratic asymptotic complexity creates engineering challenges when increasing sequence lengths. We train external “memory modules” on top of pre-trained LLMs that act as RNNs over early context.
+:::
 
-We take another approach to this problem and instead ask if we can treat the KV cache as a trainable, fast-weight model instead of inference infrastructure.
-This post will serve as the conceptual motivation for this project and explain why Titans-style neural memory is a natural choice.
-The technical details will follow in part two.
+### Attention is great to train, less so to inference
+Self-attention is great. When training, we use a causal attention mask and teacher forcing to calculate loss in parallel for tokens across a sequence. This is possible because every token corresponds to an independent query, key, and value vector, and we can blend representations across tokens through attention's lookup table mechanism. However, it is also because this very reason--that we must compute over historical keys and values--that it is asymptotically quadratic with respect to sequence length.
 
-## Memory Fundamentals
+![History repeats itself!](images/tweet.png){width=40% fig-align="center"}
 
-### Statefulness in LLMs
-During autoregressive inference, the model does not recompute attention over the whole prefix from scratch.
-At each decoding step, the model only needs to compute a fresh query, key, and value for the most recent token generated.
-The new query vector then attends over the cached KV state.
+Token parallelism during training is one of the key drivers of the success of scaling attention, but management of cached KV values for each token is one of the key challenges to engineering high throughput inference systems. Perhaps it then makes sense to utilize the transformer when pre-training (to get our data’s worth) but avoid KV cache management at inference-time by **distilling model behavior into a different architecture as the final stage of post-training.**
 
-In effect, we can store long prefixes as numerical vectors to grab from off the shelf.
-For instance, an agent's preamble consisting of MCP tool specs, system prompts, and skill descriptions forms a computational *state* of dimension sequence length x hidden dimension x attention head dimension x number of model layers.
+Specifically, RNNs that are updated via test-time training have been used previously to model longer term dependencies while self-attention is used for short term ones [@zhang2025lact; @behrouz2024titanslearningmemorizetest]. In our work, we refer to them as neural memory modules (NMMs) as is done in Titans. This naturally reflects the lower fidelity of distant memories in humans versus the higher fidelity recall we have for recent events. Nonetheless, it is hard for a fixed-size state to encode all relevant information, and **the fundamental tradeoff then becomes that between inference speedups and model quality.**
 
-### A Model Within a Model
-In more traditional language, activation matrices are really just the *fast weights* which are programmable by *slow weights*, or what we generally view to be parameters in the model [@hebb1949organization; @hinton1987fast; @schmidhuber1992learning; @ba2016using].
+![A tikz diagram (thanks sol!) describing our architecture. Attention is split into local windows, and the neural memory module (NMM) learns to memorize the KV binding of prior chunks. Each query vector then "retrieves" an output from the KV mapping. A learned $\lambda$ then blends the local and historical outputs together.](images/schematic.png){width=60% fig-align="center"}
 
-If we follow the LLM computation chain a step further, we can actually interpret the attention operation, $\operatorname{softmax}(qK^\top)V$, as a 2-layer MLP, where fast weight $K^T$ serves as the first layer, the softmax as the nonlinearity, and $V$ as the second layer.
-Given that for any unique LLM session, most of $K^T$ and $Q$ are static and cached, **attention in modern LLMs is functionally an MLP in fast-weight space.**
+### NMMs can significantly improve inference latency but reduce long context reasoning performance
+In the first four layers of a one billion parameter Llama model, we apply a segmented mask to attention to simulate the inability of referencing historical context. The NMMs are then applied on token chunks and supply information as a residual approximating the historical attention output. We compute the final output as a learned linear interpolation between the local attention output and the historical attention output approximated by the NMM. 
 
-This view is powerful but estranged from most mainstream tracts of LLM research.
-Therefore, we ask:
+![Performance on long-context reasoning tasks generally improves as the NMM chunk size is increased.](images/speed.png){width=55% fig-align="center"}
 
-1. What would it mean to treat the KV cache as a first-class citizen, and how can we bring the machinery of modern machine learning to bear on it?
+Increasing the proportion of Titan-Llama layers is like slowly transitioning the model into a deep NMM with local attention windows.^[While we did not train configurations with increased number of layers adapted, we did choose the first four layers, which were empirically the most impactful on long-context understanding. Picking deeper layers would not have put pressure on the NMMs to supply the right information (as that had already been done by earlier layers), so positive results would have been harder to measure.
+] The engineering to achieve these inference-time speedups was pretty superficial, with the results below as the result of implementing CUDA Graphs. Future engineering work may include designing specialized kernels and hunting down what causes the peak HBM memory usage.
 
-2. What becomes possible when attention is no longer constrained to remember by accumulating tokens, but can instead learn, compress, rewrite, and retrieve through weights?
+![Increasing the number of modified layers decreases both prefill latency and decode throughput. Peak memory footprint during prefill exceeds that of the baseline transformer, but steady state decode memory usage is significantly lower.](images/prefill_decode_sweep_layer_counts.jpg){width=70% fig-align="center"}
 
+As shown in the first chart, scaling token chunk size had a significant impact on performance. Here, chunk size refers to *both* the size of the local attention window and the token batch size used to train the NMM. This effect makes sense as larger chunk sizes means more tokens contained in full-fidelity attention. Prior literature also suggests that RNNs perform better with larger token batch sizes [@zhang2025lact; @feng2026inplacetesttimetraining].
 
-## Architecture overview
-
-The first thing deep learning teaches us is that we can trade width for depth.
-Titan-Llama is a first foray into recognizing KV caches as a model within a model, and specifically trading the KV cache, which are really just ultrawide fast-weight layes, with a deep architecture. 
-Though it is called Titan-Llama, our vision for this is to utilize it as a tack on to any existing LLM and serve as an inference capability enabler.
-
-Linear attention frames the matrix $K^TV$ as both a recurrent state and a mapping that transforms a query into value space--but this effectively gets rid of the nonlinearity the softmax in full attention provides.
-Titans takes this view a step further and transforms the uni-matrix mapping into a multi-layer MLP, which is trained explicitly to memorize K -> V mappings at test-time.
-At the same time, a forward pass is equivalent to one-shotting the output in hidden stream space without having to explicitly store K and V vectors in a linearly growing KV cache.
-
-Fundamentally, Titans takes a hierarchical approach to long-context language modeling, where local hidden streams computed are appended to with "virtual tokens" retrieved by querying the memory.
-The interesting thing to notice here is that since we are appending to the hidden stream of local attention, we are effectively training the slow weights within the Titan module to be good at RAG.
-We are mapping queries from our current local attention window to values that are relevant values from before.
-
-What if instead of tasking the NMM with a dual objective^[learning the bindings from K -> V *and* RAG], we did the opposite and instead emphasized the hierachical structure of textual dependencies. 
-In effect, the outer loss would train the NMM weights to produce virtual K,V tokens that are appendable into the hidden stream, and gradient updates generated at test-time flavor these K,V output tokens.
+**Future Work**  
+- Can retrofitting model architecture with more compute (😅) result in *superior* performance?  
+- How do we engineer inference pipelines so that architectural diversity within a model results in throughput performance, as opposed to slowdowns due to awkward memory partitioning?  
+- Could context compaction in parameter space result in better information representation from a theoretical perspective?  
+- Transitioning 16/16 layers? Expansion to other model families? 
+- How to distill attention outputs directly into the NMM?
+- Is KV binding loss the best inner objective for the NMM?
